@@ -9,6 +9,8 @@ Original file is located at
 Douglas Kosvoski
     1911100022
 
+# Part 1
+
 ## Loading Libraries
 """
 
@@ -113,8 +115,13 @@ def remove_tags(docs):
 
 docs_without_tags = remove_tags(docs)
 
-for i, t in enumerate(zip(docs_without_tags[:10])):
+for i, t in enumerate(zip(docs_without_tags)):
+  if 'character' in t:
+    print(t)
+    break
   print(i, t)
+
+
 
 """## Lematization"""
 
@@ -128,7 +135,7 @@ def lematize(docs):
     print('\r\r\r\r\r\r\r\r', end='')
   return dlemma
 
-dlemma = lematize(docs_without_tags)
+dlemma = lematize(docs)
 
 for i in dlemma[:10]:
   print(i)
@@ -138,8 +145,11 @@ for i in dlemma[:10]:
 min_length = 4
 dtoken = [gensim.utils.simple_preprocess(d, deacc=True, min_len=min_length) for d in dlemma]
 
-for i in dtoken[:10]:
-  print(i)
+for i in dtoken:
+  if 'character' in i and 'offset' in i:
+    print(i)
+    
+  # print(i)
 
 """## N-grams"""
 
@@ -156,73 +166,6 @@ def get_bigrams(docs):
   return bigrams
 
 print(get_bigrams(bdocs)[:10])
-
-"""### Bag of words"""
-
-def bow():
-  for k in K:
-    for a in alpha:
-      for b in eta:
-        for p in passes:
-          lda = LdaModel(
-            corpus          = corpus_bof,
-            num_topics      = k,
-            random_state    = 777,
-            id2word         = dictionary,
-            alpha           = a,
-            eta             = b,
-            per_word_topics = True,
-            passes          = p
-          )
-
-          lda_cv  = CoherenceModel(
-            model      = lda,
-            texts      = bdocs,
-            dictionary = dictionary,
-            coherence  = 'c_v'
-          )
-
-          cv_cohe = lda_cv.get_coherence()
-
-          print('K: %2d alfa: %10s beta: %10s passes: %3d coherence: %.3f'%(k, a, b, p, cv_cohe))
-          cv.append(cv_cohe)
-
-bow()
-
-"""### TF-IDF"""
-
-def tfidf():
-  for k in K:
-    for a in alpha:
-      for b in eta:
-        for p in passes:
-          lda = LdaModel(
-            corpus          = corpus_tfidf,
-            num_topics      = k,
-            random_state    = 777,
-            id2word         = dictionary,
-            alpha           = a,
-            eta             = b,
-            per_word_topics = True,
-            passes          = p
-          )
-
-          lda_cv  = CoherenceModel(
-            model      = lda,
-            texts      = bdocs,
-            dictionary = dictionary,
-            coherence  = 'c_v'
-          )
-
-          cv_cohe = lda_cv.get_coherence()
-
-          print('K: %2d alfa: %10s beta: %10s passes: %3d coherence: %.3f'%(k, a, b, p, cv_cohe))
-          cv.append(cv_cohe)
-
-tfidf()
-
-print('# of docs: %5d # of words: %6d'%(dictionary.num_docs, len(list(dictionary.values()))))
-print(list(dictionary.values()))
 
 """## Metrics"""
 
@@ -264,11 +207,14 @@ output
 import wordcloud as wc
 import matplotlib.pyplot as plt
 
-mycloud = wc.WordCloud().generate(output)
-plt.figure(figsize=(20,10))
+mycloud = wc.WordCloud(prefer_horizontal=1, width=1920, height=1080, min_font_size=6, background_color='white').generate(output)
+plt.figure(figsize=(16,9))
 plt.imshow(mycloud)
 
-"""## Feature Extraction"""
+"""# Part 2
+
+## Feature Extraction
+"""
 
 def join_docs(docs):
   docs = []
@@ -293,58 +239,6 @@ denseList = dense.tolist()
 df = pd.DataFrame(denseList, columns=set(features))
 for feature in df.columns:
   print(feature, df[feature].unique())
-
-"""## BoW & TF-idf"""
-
-# from gensim.models.coherencemodel import CoherenceModel
-# from gensim.corpora import Dictionary
-# from gensim.models import TfidfModel
-# from gensim.models import LdaModel
-
-# dictionary = Dictionary(bdocs)
-# print(dictionary)
-
-# dictionary.filter_extremes(keep_n=1000, no_above=0.9, no_below=len(bdocs)*0.01) # no_below 1%
-# print(dictionary)
-
-# corpus_bof   = [dictionary.doc2bow(d) for d in bdocs]
-# tfidf        = TfidfModel(corpus_bof)
-# corpus_tfidf = tfidf[corpus_bof]
-
-# K = [10, 20, 30, 40]
-# passes = [50, 100, 200]
-
-# alpha, eta = ['symmetric', 'asymmetric', 'auto'], ['symmetric', 'auto']
-# vocab = list(dictionary.values())
-
-# print(f'# of docs: {dictionary.num_docs} \n# of words: {len(vocab)}')
-# cv = []
-
-# for k in K:
-#   for a in alpha:
-#     for b in eta:
-#       for p in passes:
-#         lda = LdaModel(
-#           corpus          = corpus_tfidf,
-#           num_topics      = k,
-#           random_state    = 777,
-#           id2word         = dictionary,
-#           alpha           = a,
-#           eta             = b,
-#           per_word_topics = True,
-#           passes          = p
-#         )
-
-#         lda_cv = CoherenceModel(
-#           model       =lda,
-#           texts       = bdocs,
-#           dictionary  = dictionary,
-#           coherence   = 'c_v'
-#         )
-#         cv_cohe = lda_cv.get_coherence()
-
-#         print('K: %2d | alfa: %10s | beta: %10s | passes: %3d coherence: %.3f' % (k, a, b, p, cv_cohe))
-#         cv.append(cv_cohe)
 
 """## Model"""
 
@@ -381,6 +275,7 @@ def printTopics(mdl, p=False, top_n=10):
 # bab2min.github.io/tomotopy/v0.4.1/en/#tomotopy.LDAModel
 
 best_alpha, best_beta = None, None
+# alpha, beta = [0.1, 0.5, 1, 1.5, 2], alpha.copy()
 alpha, beta = 2, 2
 
 mdl, best_model = None, None
@@ -402,8 +297,9 @@ for a in [alpha]:
       )
 
       runModel(mdl, bdocs)
-      cv_scores.append(current_coherence)
       current_coherence = get_coherence(mdl)
+
+      cv_scores.append(current_coherence)
 
       if current_coherence >= max(cv_scores):
         print(f"\n{'-'*10} Better params found!!! {'-'*10}")
@@ -422,5 +318,109 @@ plt.show()
 
 print(f"\nHighest coherence is doc #{max(zip(cv_scores, x))[1]-1} with {'%.4f' % max(zip(cv_scores, x))[0]}")
 
+"""# Part 3"""
+
+try:
+  best_model = tp.LDAModel.load('asd.model')
+except Exception as e:
+  print("Couldn't load the model")
+
 printTopics(best_model, p=True, top_n=10)
+
+def topics_from_model(mdl, top_n=10):
+  list_string = []
+  for k in range(10):
+    string_doc = '%2d ->' % k
+
+    for word, prob in mdl.get_topic_words(topic_id=k, top_n=top_n):
+      string_doc += " " + word
+    list_string.append(string_doc.title())
+  return list_string
+
+list_string = topics_from_model(best_model, top_n=15)
+a = [print(i+'\n') for i in list_string]
+
+def find_topics_association_to_docs(model, threshold=0.5):
+  """
+    Number of times a topic appears
+      e.g. topic # X appears Y times in the docs
+  """
+  appearances = [0 for i in range(model.k)]
+
+  for index, doc in enumerate(model.docs):
+    tokens = doc.get_topics()
+
+    for token in tokens:
+      token_number, token_score = token[0], token[1]
+
+      if token_score > threshold:
+        appearances[token_number] += 1
+
+  return appearances
+
+association = find_topics_association_to_docs(best_model)
+association
+
+def sort_association(assoc):
+  import operator
+
+  dic = {}
+  for i, j in enumerate(assoc):
+    dic[str(i)] = j
+
+  return [int(i[0]) for i in sorted(dic.items(), key=operator.itemgetter(1), reverse=True)]
+
+docs_sorted = sort_association(association)[:10]
+docs_sorted
+
+def print_top_topics(model, docs):
+  print(f" {'-'*75} Top 10 topic most associated with docs {'-'*75} \n")
+  for i in docs[:10]:
+    topic = " ".join([i[0] for i in model.get_topic_words(i)])
+    print('%2d ' % i, topic.title())
+
+print_top_topics(best_model, docs_sorted)
+
+# def print_top_topics(model, top_n=10):
+#   print(f" {'-'*75} Top 10 topic most associated with docs {'-'*75} \n")
+#   for i in range(0, top_n, 1):
+#     topic = " ".join(['%18s' % i[0] for i in model.get_topic_words(i)])
+#     print(i, topic.title())
+
+# print_top_topics(best_model)
+
+labels = [
+  "Mobile", #11
+  "Image Sprite", #9
+  "Linux", #12
+  "Windows Server", #16
+  "Web Dev", #2
+  "HTML", #17
+  "Game", #19
+  "Vector", #6
+  "SGBD Driver", #15
+  "Database", #20
+]
+
+association = association[:10]
+plt.figure(figsize=(15, 8))
+plt.grid()
+plt.bar(range(len(association)), association, color='teal', edgecolor='black')
+plt.ylabel('# of Occurances', fontdict=dict(fontsize=15))
+plt.rcParams.update({'font.family':'sans-serif'})
+
+for index, data in enumerate(association):
+  plt.text(x=index-0.05, y=data+0.15, s=str(data), fontdict=dict(fontsize=15))
+  plt.text(
+    x        = index,
+    y        = -1,
+    s        = labels[index],
+    rotation = 45,
+    fontdict = dict(fontsize=15),
+    horizontalalignment = 'center',
+    verticalalignment   = 'center'
+  )
+
+plt.tight_layout()
+plt.show()
 
